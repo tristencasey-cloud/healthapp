@@ -4,6 +4,7 @@ import {
   getAllFoodLogs,
   addFoodLog,
   deleteFoodLog,
+  updateFoodLog,
   getAllFoodLibrary,
   addToFoodLibrary,
   deleteFoodLibraryItem,
@@ -45,6 +46,9 @@ export default function Diet() {
 
   const [waterOz, setWaterOz] = useState(0);
   const [customWater, setCustomWater] = useState('');
+
+  const [editingFoodId, setEditingFoodId] = useState(null);
+  const [editFoodData, setEditFoodData] = useState({});
 
   const searchInputRef = useRef(null);
 
@@ -387,6 +391,38 @@ export default function Diet() {
   async function removeFood(id) {
     await deleteFoodLog(id);
     await loadFoods(date);
+    if (editingFoodId === id) setEditingFoodId(null);
+  }
+
+  function toggleFoodEdit(food) {
+    if (editingFoodId === food.id) {
+      setEditingFoodId(null);
+      setEditFoodData({});
+    } else {
+      setEditingFoodId(food.id);
+      setEditFoodData({
+        name: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+      });
+    }
+  }
+
+  async function saveFoodEdit(food) {
+    const updated = {
+      ...food,
+      name: editFoodData.name || food.name,
+      calories: parseInt(editFoodData.calories) || 0,
+      protein: parseInt(editFoodData.protein) || 0,
+      carbs: parseInt(editFoodData.carbs) || 0,
+      fat: parseInt(editFoodData.fat) || 0,
+    };
+    await updateFoodLog(updated);
+    await loadFoods(date);
+    setEditingFoodId(null);
+    setEditFoodData({});
   }
 
   const totalCals = foods.reduce((s, f) => s + (f.calories || 0), 0);
@@ -472,16 +508,96 @@ export default function Diet() {
           {foods.length > 0 ? (
             <div className="log-list">
               {foods.map((f) => (
-                <div key={f.id} className="log-item">
-                  <div className="log-item-content">
-                    <span className="log-exercise">{f.name}</span>
+                <div key={f.id} className={`log-item${editingFoodId === f.id ? ' editing' : ''}`}>
+                  <div
+                    className="log-item-content"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => toggleFoodEdit(f)}
+                  >
+                    <span className="log-exercise">
+                      {editingFoodId === f.id ? editFoodData.name : f.name}
+                    </span>
                     <span className="log-details">
-                      {f.calories} cal · P:{f.protein}g C:{f.carbs}g F:{f.fat}g
+                      {editingFoodId === f.id
+                        ? `${editFoodData.calories} cal · P:${editFoodData.protein}g C:${editFoodData.carbs}g F:${editFoodData.fat}g`
+                        : `${f.calories} cal · P:${f.protein}g C:${f.carbs}g F:${f.fat}g`}
                     </span>
                   </div>
-                  <button className="btn-delete" onClick={() => removeFood(f.id)}>
-                    ×
-                  </button>
+                  {editingFoodId !== f.id && (
+                    <button className="btn-delete" onClick={() => removeFood(f.id)}>
+                      ×
+                    </button>
+                  )}
+                  {editingFoodId === f.id && (
+                    <div className="food-edit-panel">
+                      <div className="edit-field">
+                        <span className="edit-field-label">Name</span>
+                        <input
+                          type="text"
+                          value={editFoodData.name}
+                          onChange={(e) => setEditFoodData({ ...editFoodData, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="macro-edit-grid">
+                        <div className="edit-field">
+                          <span className="edit-field-label">Calories</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={editFoodData.calories === 0 ? '' : String(editFoodData.calories)}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              setEditFoodData({ ...editFoodData, calories: parseInt(val) || 0 });
+                            }}
+                          />
+                        </div>
+                        <div className="edit-field">
+                          <span className="edit-field-label">Protein (g)</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={editFoodData.protein === 0 ? '' : String(editFoodData.protein)}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              setEditFoodData({ ...editFoodData, protein: parseInt(val) || 0 });
+                            }}
+                          />
+                        </div>
+                        <div className="edit-field">
+                          <span className="edit-field-label">Carbs (g)</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={editFoodData.carbs === 0 ? '' : String(editFoodData.carbs)}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              setEditFoodData({ ...editFoodData, carbs: parseInt(val) || 0 });
+                            }}
+                          />
+                        </div>
+                        <div className="edit-field">
+                          <span className="edit-field-label">Fat (g)</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={editFoodData.fat === 0 ? '' : String(editFoodData.fat)}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              setEditFoodData({ ...editFoodData, fat: parseInt(val) || 0 });
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="lift-edit-actions">
+                        <button className="btn-primary" onClick={() => saveFoodEdit(f)}>
+                          Save
+                        </button>
+                        <button className="btn-secondary" onClick={() => { setEditingFoodId(null); setEditFoodData({}); }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -716,9 +832,13 @@ export default function Diet() {
               <label>Daily Goal</label>
               <div className="serving-row">
                 <input
-                  type="number"
-                  value={goals.waterGoal}
-                  onChange={(e) => updateWaterGoal(e.target.value)}
+                  type="text"
+                  inputMode="numeric"
+                  value={goals.waterGoal === 0 ? '' : String(goals.waterGoal)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    updateWaterGoal(val || '0');
+                  }}
                   style={{ width: 80 }}
                 />
                 <span style={{ alignSelf: 'center', color: 'var(--text-muted)', fontSize: 14 }}>

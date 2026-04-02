@@ -48,16 +48,35 @@ export default function Overview() {
     const wData = stats.filter((s) => s.weight).map((s) => ({ date: s.date, value: s.weight }));
     setWeightData(wData);
 
-    // Streak: consecutive days (back from today) with any food or workout activity
+    // Streak: consecutive days with food or workout activity.
+    // A day marked 'Rest' (no food/workout) counts but only once — 2+ consecutive
+    // rest-only days breaks the streak.
     const activeDates = new Set();
+    const restOnlyDates = new Set();
     allFoods.forEach((f) => activeDates.add(f.date));
     allLogs.forEach((log) => {
-      if ((log.lifts?.length > 0) || (log.cardio?.length > 0)) activeDates.add(log.date);
+      const hasActivity = (log.lifts?.length > 0) || (log.cardio?.length > 0);
+      if (hasActivity) {
+        activeDates.add(log.date);
+      } else if (log.splitDay === 'Rest') {
+        restOnlyDates.add(log.date);
+      }
     });
     let count = 0;
+    let consecutiveRest = 0;
     const cursor = new Date();
-    while (activeDates.has(cursor.toISOString().split('T')[0])) {
-      count++;
+    while (true) {
+      const d = localDateStr(cursor);
+      if (activeDates.has(d)) {
+        count++;
+        consecutiveRest = 0;
+      } else if (restOnlyDates.has(d)) {
+        consecutiveRest++;
+        if (consecutiveRest >= 2) break;
+        count++;
+      } else {
+        break;
+      }
       cursor.setDate(cursor.getDate() - 1);
     }
     setStreak(count);

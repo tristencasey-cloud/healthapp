@@ -24,7 +24,7 @@
   --radius: 14px;
   --radius-sm: 10px;
   --radius-xs: 6px;
-  --nav-height: 76px;
+  --nav-height: 62px;
   --header-height: 56px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
@@ -234,7 +234,7 @@ textarea {
   border: none;
   color: var(--text-dim);
   cursor: pointer;
-  padding: 6px 20px;
+  padding: 4px 20px;
   transition:
     color 0.2s,
     transform 0.1s;
@@ -626,10 +626,11 @@ textarea {
 
 .form-card {
   background: var(--bg-card);
-  border: 1px dashed var(--border-light);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius);
   padding: 18px;
   margin-bottom: 14px;
+  overflow: hidden;
 }
 
 .form-row {
@@ -670,6 +671,7 @@ input[type='number'],
 input[type='date'],
 select {
   width: 100%;
+  max-width: 100%;
   background: var(--bg-input);
   color: var(--text);
   -webkit-text-fill-color: var(--text);
@@ -1487,8 +1489,9 @@ select {
   gap: 8px;
 }
 
-.lift-edit-row input {
-  flex: 1;
+.lift-edit-row > input,
+.lift-edit-row .edit-field input {
+  width: 100%;
   min-width: 0;
   margin-bottom: 0;
   font-size: 14px;
@@ -1731,4 +1734,93 @@ select {
   vertical-align: middle;
   position: relative;
   top: -0.15em;
+}
+
+/* ─── Labeled Edit Fields ─── */
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-field-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding-left: 2px;
+}
+
+.edit-field input {
+  width: 100%;
+  margin-bottom: 0;
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+.macro-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ─── Food Inline Edit Panel (Diet) ─── */
+
+.food-edit-panel {
+  width: 100%;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.food-edit-panel input {
+  margin-bottom: 0;
+}
+
+/* ─── Exercise Session History (Fitness Progress) ─── */
+
+.progress-exercise-card {
+  cursor: pointer;
+}
+
+.progress-exercise-card:active {
+  transform: scale(0.99);
+}
+
+.exercise-history-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.exercise-history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.exercise-history-row:last-child {
+  border-bottom: none;
+}
+
+.exercise-history-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.exercise-history-sets {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }

@@ -35,6 +35,7 @@ export default function Profile({ onClose, onAccentChange }) {
   const [photos, setPhotos] = useState([]);
   const [photoViewer, setPhotoViewer] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [showAllWeights, setShowAllWeights] = useState(false);
 
   useEffect(() => {
     loadBodyStats();
@@ -270,9 +271,13 @@ export default function Profile({ onClose, onAccentChange }) {
             <div className="input-group">
               <label>Daily Calories</label>
               <input
-                type="number"
-                value={goals.calories}
-                onChange={(e) => updateGoals('calories', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                value={goals.calories === 0 ? '' : String(goals.calories)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  updateGoals('calories', parseInt(val) || 0);
+                }}
                 disabled={goals.mode === 'auto'}
               />
             </div>
@@ -280,9 +285,13 @@ export default function Profile({ onClose, onAccentChange }) {
             <div className="input-group">
               <label>Protein (g)</label>
               <input
-                type="number"
-                value={goals.protein}
-                onChange={(e) => updateGoals('protein', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                value={goals.protein === 0 ? '' : String(goals.protein)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  updateGoals('protein', parseInt(val) || 0);
+                }}
                 disabled={goals.mode === 'auto'}
               />
             </div>
@@ -290,9 +299,13 @@ export default function Profile({ onClose, onAccentChange }) {
             <div className="input-group">
               <label>Carbs (g)</label>
               <input
-                type="number"
-                value={goals.carbs}
-                onChange={(e) => updateGoals('carbs', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                value={goals.carbs === 0 ? '' : String(goals.carbs)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  updateGoals('carbs', parseInt(val) || 0);
+                }}
                 disabled={goals.mode === 'auto'}
               />
             </div>
@@ -300,9 +313,13 @@ export default function Profile({ onClose, onAccentChange }) {
             <div className="input-group">
               <label>Fat (g)</label>
               <input
-                type="number"
-                value={goals.fat}
-                onChange={(e) => updateGoals('fat', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                value={goals.fat === 0 ? '' : String(goals.fat)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  updateGoals('fat', parseInt(val) || 0);
+                }}
                 disabled={goals.mode === 'auto'}
               />
             </div>
@@ -310,9 +327,13 @@ export default function Profile({ onClose, onAccentChange }) {
             <div className="input-group">
               <label>Workouts Per Week</label>
               <input
-                type="number"
-                value={goals.workoutsPerWeek}
-                onChange={(e) => updateGoals('workoutsPerWeek', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                value={goals.workoutsPerWeek === 0 ? '' : String(goals.workoutsPerWeek)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  updateGoals('workoutsPerWeek', parseInt(val) || 0);
+                }}
               />
             </div>
 
@@ -381,7 +402,7 @@ export default function Profile({ onClose, onAccentChange }) {
             {weightData.length > 0 && (
               <div className="weight-history-list">
                 {weightData
-                  .slice(-10)
+                  .slice(showAllWeights ? 0 : -5)
                   .reverse()
                   .map((d) => (
                     <div key={d.date} className="weight-history-item">
@@ -398,6 +419,15 @@ export default function Profile({ onClose, onAccentChange }) {
                       </button>
                     </div>
                   ))}
+                {weightData.length > 5 && (
+                  <button
+                    className="btn-small"
+                    style={{ marginTop: 10, width: '100%' }}
+                    onClick={() => setShowAllWeights(!showAllWeights)}
+                  >
+                    {showAllWeights ? 'Show less' : `Show all (${weightData.length})`}
+                  </button>
+                )}
               </div>
             )}
           </div>

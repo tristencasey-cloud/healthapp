@@ -1,6 +1,6 @@
 # HealthApp
 
-Personal health and fitness PWA built with React + Vite. Designed to feel like a native iPhone app when installed via Safari's "Add to Home Screen." Single-user, no backend, all data stored on-device, but will most likey implement backend and database later
+Personal health and fitness PWA built with React + Vite. Designed to feel like a native iPhone app when installed via Safari's "Add to Home Screen." Single-user, no backend, all data stored on-device, but will most likely implement backend and database later.
 
 
 ## Tech Stack
@@ -22,7 +22,7 @@ healthapp/
 ├── src/
 │   ├── components/
 │   │   ├── BottomNav.jsx     # 3-tab bottom navigation
-│   │   ├── icons.jsx         # SVG icon components (SettingsIcon = gear/cog)
+│   │   ├── icons.jsx         # SVG icon components (SettingsIcon = gear/cog, DietIcon = fork)
 │   │   ├── ProgressBar.jsx   # Reusable progress bar with label
 │   │   └── Sparkline.jsx     # SVG sparkline chart
 │   ├── pages/
@@ -82,7 +82,7 @@ Six object stores in a database called `healthapp` (current `DB_VERSION = 3`):
 ### localStorage
 
 - `userProfile`: `{ age, sex, heightFt, heightIn, weight, activityLevel }`
-- `userGoals`: `{ calories, protein, carbs, fat, workoutsPerWeek, waterGoal, mode }`
+- `userGoals`: `{ calories, protein, carbs, fat, workoutsPerWeek, waterGoal, mode, weightGoal }`
 - `appSettings`: `{ theme, split, accentColor }` — `split` is `'none' | 'ppl' | 'upper_lower' | 'bro'`; `accentColor` is a hex string (default `'#e8734a'`)
 
 ## DB Functions (`src/db.js`)
@@ -102,6 +102,7 @@ Key functions beyond basic CRUD:
 - `getAllTemplates()` — all saved workout templates
 - `saveTemplate(template)` — add new template (omit `id`) or update existing (include `id`)
 - `deleteTemplate(id)` — delete a template by id
+- `updateFoodLog(entry)` — update an existing food log entry in-place via `db.put` (entry must include `id`)
 
 ## Navigation
 
@@ -110,14 +111,25 @@ Three main tabs via bottom nav: Overview, Fitness, Diet. Profile/Settings access
 ## Conventions
 
 - All dates stored and compared as YYYY-MM-DD strings
-- Use `localDateStr()` from `helpers.js` for user-facing date inputs (timezone-safe). `todayStr()` uses UTC and can produce the wrong date for negative UTC offsets — prefer `localDateStr()` in Profile/body stat contexts
+- Use `localDateStr()` from `helpers.js` for user-facing date inputs (timezone-safe). `todayStr()` uses UTC and can produce the wrong date for negative UTC offsets — prefer `localDateStr()` everywhere except where UTC is explicitly correct
 - Weight always in lbs (no unit toggle yet)
 - Nutrition values are per 100g from USDA API; serving size is applied as `(qty × measure.grams) / 100` multiplier
 - Progress photos compressed to max 400px and JPEG quality 0.6 before storage
 - No router library; tab switching via state in App.jsx
 - All DB operations are async and imported from `src/db.js`
 - All localStorage reads/writes go through `src/storage.js`
-- Number inputs: native spinners are hidden globally via CSS (`-webkit-appearance: none` on spin buttons). Use `-webkit-text-fill-color` alongside `color` for input text visibility in WebKit browsers
+- **Number inputs that pre-fill with a value use `type="text" inputMode="numeric"`** instead of `type="number"` to allow the field to be fully cleared on iOS Safari (which blocks deletion of the last digit on `type="number"`). Non-digit chars stripped in `onChange`. Display `0` as `''` so the field appears blank when value is zero.
+- Native spinner buttons hidden globally via CSS (`-webkit-appearance: none`). Use `-webkit-text-fill-color` alongside `color` for input text visibility in WebKit.
+
+## CSS Conventions (`src/App.css`)
+
+- `--nav-height: 62px` — bottom nav height (excluding safe-area inset)
+- `.form-card` — uses `border: 1px solid var(--border-light)` (same as other cards; do NOT use dashed)
+- `.edit-field` + `.edit-field-label` — labeled wrapper pattern for edit inputs: flex column with a 10px uppercase label above the input. Used in lift edit and food log edit.
+- `.macro-edit-grid` — 2×2 grid (2 columns) for laying out 4 macro edit fields
+- `.lift-edit-row` — flex row for edit fields; targets both direct `input` children and `input` inside `.edit-field`
+- `.exercise-history-panel` / `.exercise-history-row` — expanded session history inside progress exercise cards
+- `.food-edit-panel` — inline edit container inside a food log item
 
 ## Diet Page (`src/pages/Diet.jsx`)
 
@@ -141,11 +153,18 @@ Three main tabs via bottom nav: Overview, Fitness, Diet. Profile/Settings access
 - Duplicate detection: checks `library` state before saving to library; shows "Already in library" flash if duplicate
 - Scroll on results list blurs the search input (keyboard dismiss on mobile)
 
+### Food Log Inline Edit
+- Tapping a logged food item's content area toggles an inline edit form below it
+- State: `editingFoodId` (number | null), `editFoodData` ({ name, calories, protein, carbs, fat })
+- Edit form: Name field (full width) + 2×2 macro grid (Calories / Protein / Carbs / Fat), each with a labeled `.edit-field` wrapper
+- Save calls `updateFoodLog({ ...food, ...editFoodData })` then reloads foods — all totals update immediately
+- Removing a food while it's being edited clears edit state
+
 ## Water Tab (`src/pages/Diet.jsx` — `view === 'water'`)
 
 - 5th tab in the Diet tab-row; tab-row gets `.diet-tabs` class to tighten padding to `9px 6px` on mobile
 - **Tracking:** Running daily total (oz) — no per-drink history, no individual delete
-- **Goal:** Stored as `goals.waterGoal` (default 64 oz) in localStorage; editable inline at the top of the tab
+- **Goal:** Stored as `goals.waterGoal` (default 64 oz) in localStorage; editable inline at the top of the tab using `type="text" inputMode="numeric"` (iOS zero-deletion safe)
 - **Quick-add buttons:** +8 / +12 / +16 / +20 oz, rendered as `.water-quick-btn` grid (4 columns)
 - **Custom amount:** Number input + "Add" (primary) and "Remove" (secondary) buttons — both clamp total at 0
 - **Goal-met state:** Card gets green glow + "Goal hit!" badge when `waterOz >= goals.waterGoal`
@@ -169,6 +188,10 @@ Three tabs: **Lifts**, **Cardio**, **Progress**.
 - Selection saved to `workoutLog.splitDay` in IndexedDB
 - When `splitDay === 'Rest'` and no lifts logged: shows `.rest-day-banner` instead of empty state
 
+### Lift Inline Edit
+- Tapping "Edit" on a logged lift opens an inline edit form with labeled fields: Sets / Reps / Weight (lbs)
+- Uses `.lift-edit-row` with `.edit-field` wrappers (label above each input)
+
 ### Templates
 - **Load Template** button in Lifts tab opens the template panel (`.template-panel`)
 - Template panel has 3 views:
@@ -183,11 +206,21 @@ Three tabs: **Lifts**, **Cardio**, **Progress**.
 - Loads on every tab switch (no stale-data guard) via `useEffect([section])`
 - Single `getAllWorkoutLogs()` scan; builds per-exercise date→maxWeight map client-side
 - Each exercise card shows: name, PR (all-time max weight), trend delta vs previous session (↑/↓), last logged date, sparkline
+- **Tapping a card** expands it inline to show session history (up to 10 most recent sessions, each with date + sets×reps@weight for every logged lift). State: `expandedExercise` (string | null), `expandedHistory`, `loadingExpandHistory`
+- Tapping the expanded card again collapses it
 - Filter input at top searches exercise names
+
+## Overview Page (`src/pages/Overview.jsx`)
+
+### Streak Logic
+- Counts consecutive days (back from today) where the user logged food OR a workout (lifts/cardio)
+- **Rest days** (`splitDay === 'Rest'` with no food/workout logged) count toward the streak — but only 1 consecutive rest day is allowed. Two or more rest-only days in a row resets the streak.
+- Cursor uses `localDateStr()` (timezone-safe) not `toISOString().split('T')[0]`
 
 ## Profile Page (`src/pages/Profile.jsx`)
 
 ### Goals Section
+- All goal number inputs (calories, protein, carbs, fat, workoutsPerWeek) use `type="text" inputMode="numeric"` — iOS zero-deletion safe
 - Workout Split `<select>` below Workouts Per Week — saves to `appSettings.split` via `saveSettings()`
 - Changing the split type here controls which pill buttons appear on the Fitness page
 
@@ -202,6 +235,7 @@ Three tabs: **Lifts**, **Cardio**, **Progress**.
 - Date picker (defaults to today via `localDateStr()`, capped at today via `max` attribute)
 - Weight input styled with `.weight-input` class — 20px bold, centered
 - `.weight-input-row .btn-primary { width: auto }` overrides the global `btn-primary` width: 100% that would otherwise collapse the input
+- Weight history: shows last 5 entries by default; "Show all (N)" / "Show less" toggle appears when there are more than 5 entries. State: `showAllWeights` (boolean).
 - Weight history items have delete buttons (calls `deleteBodyStat(date)`)
 
 ## Development
@@ -230,3 +264,4 @@ npm run deploy  # deploy to GitHub Pages
 - Gram presets (100g, 150g, 200g, 1oz quick-fill buttons) not yet implemented on the serving input
 - Template exercises load "last logged" weight from most recent session's first lift only — could be smarter (e.g. best set, or let user edit weights inline in the checklist)
 - Accent color palette is hardcoded in `Profile.jsx` (`ACCENT_COLORS` array) — no custom color picker yet
+- Food log edit only supports name + macros; changing the date requires delete + re-add

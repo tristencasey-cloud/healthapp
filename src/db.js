@@ -159,6 +159,11 @@ export async function deleteFoodLog(id) {
   return db.delete('foodLogs', id);
 }
 
+export async function updateFoodLog(entry) {
+  const db = await getDB();
+  return db.put('foodLogs', entry);
+}
+
 export async function getAllFoodLogs() {
   const db = await getDB();
   return db.getAll('foodLogs');

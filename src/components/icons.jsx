@@ -49,8 +49,8 @@ export function DietIcon({ size = 24, color = 'currentColor' }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M12 3C7 3 3 7.5 3 12c0 3 2 6 5 7.5C9.5 20.5 11 21 12 21s2.5-.5 4-1.5c3-1.5 5-4.5 5-7.5C21 7.5 17 3 12 3z" />
-      <path d="M12 3c0 4 2 7 5 9" />
+      <line x1="12" y1="2" x2="12" y2="21" />
+      <path d="M9 2v5a3 3 0 0 0 6 0V2" />
     </svg>
   );
 }

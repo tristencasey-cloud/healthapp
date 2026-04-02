@@ -61,6 +61,9 @@ export default function Fitness() {
   const [progressData, setProgressData] = useState([]);
   const [progressSearch, setProgressSearch] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const [expandedExercise, setExpandedExercise] = useState(null);
+  const [expandedHistory, setExpandedHistory] = useState([]);
+  const [loadingExpandHistory, setLoadingExpandHistory] = useState(false);
 
   // Templates
   const [templates, setTemplates] = useState([]);
@@ -151,6 +154,19 @@ export default function Fitness() {
     } finally {
       setLoadingProgress(false);
     }
+  }
+
+  async function handleToggleExercise(name) {
+    if (expandedExercise === name) {
+      setExpandedExercise(null);
+      setExpandedHistory([]);
+      return;
+    }
+    setExpandedExercise(name);
+    setLoadingExpandHistory(true);
+    const history = await getExerciseHistory(name);
+    setExpandedHistory(history);
+    setLoadingExpandHistory(false);
   }
 
   function handleDateNav(dir) {
@@ -699,9 +715,18 @@ export default function Fitness() {
                     <>
                       <div className="log-exercise">{lift.exercise}</div>
                       <div className="lift-edit-row">
-                        <input type="number" placeholder="Sets" value={editLiftData.sets} onChange={(e) => setEditLiftData({ ...editLiftData, sets: e.target.value })} />
-                        <input type="number" placeholder="Reps" value={editLiftData.reps} onChange={(e) => setEditLiftData({ ...editLiftData, reps: e.target.value })} />
-                        <input type="number" placeholder="lbs" value={editLiftData.weight} onChange={(e) => setEditLiftData({ ...editLiftData, weight: e.target.value })} />
+                        <div className="edit-field">
+                          <span className="edit-field-label">Sets</span>
+                          <input type="number" value={editLiftData.sets} onChange={(e) => setEditLiftData({ ...editLiftData, sets: e.target.value })} />
+                        </div>
+                        <div className="edit-field">
+                          <span className="edit-field-label">Reps</span>
+                          <input type="number" value={editLiftData.reps} onChange={(e) => setEditLiftData({ ...editLiftData, reps: e.target.value })} />
+                        </div>
+                        <div className="edit-field">
+                          <span className="edit-field-label">Weight (lbs)</span>
+                          <input type="number" value={editLiftData.weight} onChange={(e) => setEditLiftData({ ...editLiftData, weight: e.target.value })} />
+                        </div>
                       </div>
                       <div className="lift-edit-actions">
                         <button className="btn-primary" onClick={saveEditLift}>Save</button>
@@ -813,9 +838,14 @@ export default function Fitness() {
               const lastWeight = ex.sparklineData[ex.sparklineData.length - 1].value;
               const delta = ex.prevSessionWeight !== null ? lastWeight - ex.prevSessionWeight : null;
               const trendClass = delta === null ? 'neutral' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'neutral';
+              const isExpanded = expandedExercise === ex.name;
 
               return (
-                <div key={ex.name} className="progress-exercise-card">
+                <div
+                  key={ex.name}
+                  className={`progress-exercise-card${isExpanded ? ' expanded' : ''}`}
+                  onClick={() => handleToggleExercise(ex.name)}
+                >
                   <div className="progress-exercise-name">{ex.name}</div>
                   <div className="progress-exercise-meta">
                     <span className="pr-value">{ex.pr} lbs</span>
@@ -828,6 +858,24 @@ export default function Fitness() {
                     <span className="pr-last-date">Last: {formatDate(ex.lastDate)}</span>
                   </div>
                   <Sparkline data={ex.sparklineData} width={280} height={48} color="var(--accent)" />
+                  {isExpanded && (
+                    <div className="exercise-history-panel">
+                      {loadingExpandHistory ? (
+                        <div className="empty-state" style={{ padding: '12px 0' }}>Loading…</div>
+                      ) : expandedHistory.length === 0 ? (
+                        <div className="empty-state" style={{ padding: '12px 0' }}>No history found</div>
+                      ) : (
+                        expandedHistory.slice(0, 10).map((session) => (
+                          <div key={session.date} className="exercise-history-row">
+                            <span className="exercise-history-date">{formatDate(session.date)}</span>
+                            <span className="exercise-history-sets">
+                              {session.lifts.map((l) => `${l.sets}×${l.reps} @ ${l.weight} lbs`).join('  ·  ')}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })
